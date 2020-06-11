@@ -13,4 +13,4 @@ This is the code of CVPR 2020 oral paper "Distilling Cross-Task Knowledge via Re
 ## Cross-Task Knowledge Distillation
 It is intuitive to take advantage of the learning experience from related pre-trained models to facilitate model training in the current task. Different from ﬁne-tuning or parameter regularization, knowledge distillation/knowledge reuse extracts kinds of dark knowledge/privileged information from a ﬁxed strong model (a.k.a. "teacher"), and enrich the target model (a.k.a. "student") training with more signals. Owing to the strong correspondence between classiﬁer and class,it is difﬁcult to reuse the classiﬁcation knowledge from a cross-task teacher model.
 
-<img src='figures/setting.png'>
+<img src='figures/setting.png' width='400'>
