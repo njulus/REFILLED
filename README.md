@@ -26,6 +26,16 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 **Dataset:CIFAR100 Teacher:WRN-(40-2) Student:WRN-{(40,2),(16,2),(40,1),(16,1)}**
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
-|Teacher|
+|Teacher       |      |      |      |      |
+|Student       |      |      |      |      |
+|:------------:|:----:|:----:|:----:|:----:|
+|KD            |      |      |      |      |
+|FitNet        |      |      |      |      |
+|AT            |      |      |      |      |
+|NST           |      |      |      |      |
+|VID-I         |      |      |      |      |
+|KD + VID-1    |      |      |      |      |
+|RKD           |      |      |      |      |
+|REFILLED      |      |      |      |      |
 
 ## Code and Arguments
