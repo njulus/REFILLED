@@ -38,3 +38,28 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 |REFILLED      |**77.49**      |**74.01**      |**72.72**      |**67.56**      |
 
 ## Code and Arguments
+This code implements REFILLED under the setting where a source task and a target task is given. **main.py** is the main file and the arguments it take are listed below.
+
+- `data_name`: name of dataset ('CIFAR100', 'CUB200'), defautl to 'CIFAR100'
+- `model_name`: name of student model ('WideResNet', 'ResNet', 'MobileNet'), default to 'WideResNet'
+- `depth`: depth of WideResNet and ResNet, default to 16
+- `width`: width of WideResNet, default to 1
+- `ca`: channel parameter of MobileNet, default to 0.25
+- `number_of_classes`: just as name, default to 100
+- `dropout_rate`: just as name, default to 0.3
+- `train_batch_size`: just as name, default to 512
+- `validate_batch_size`: just as name, default to 128
+- `test_batch_size`: just as name, default to 128
+- `learning_rate_in_stage1`: initial learning rate used in stage1, default to 0.1
+- `learning_rate_in_stage2`: initial learning rate used in stage2, default to 0.1
+- `momentum`: just as name, default to 0.9
+- `weight_decay`: just as name, default to 0.0005
+- `nesterov`: just as name, default to True
+- `number_of_epochs_in_stage1`: just as name, default to 2
+- `number_of_epochs_in_stage2`: just as name, default to 2
+- `flag_gpu`: a boolean variable indicating whether the model is trained on a GPU, default to True
+- `model_path_stage1`: where to save the model trained in stage1, default to 'saves/trained_models/ReFilled_stage1/'
+- `model_path_stage2`: where to save the model trained in stage2, default to 'saves/trained_models/ReFilled_stage2/'
+- `result_path_stage1`: where to save the training results in stage1, default to 'saves/results/ReFilled_stage1/'
+- `result_path_stage2`: where to save the training results in stage2, default to 'saves/results/ReFilled_stage2/'
+- `teacher_model_file_path`: a file containing the parameters of the well-trained teacher model, default to 'my_teacher'
