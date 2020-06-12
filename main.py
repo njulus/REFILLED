@@ -105,8 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path_stage2', default = 'saves/trained_models/ReFilled_stage2/')
     parser.add_argument('--result_path_stage1', default = 'saves/results/ReFilled_stage1/')
     parser.add_argument('--result_path_stage2', default = 'saves/results/ReFilled_stage2/')
-    parser.add_argument('--teacher_model_file_path',
-        default = 'saves/trained_models/single_depth=40_width=2_dropout=0.3_batch=128_lr=0.1_mmt=0.9_wd=0.0005')
+    parser.add_argument('--teacher_model_file_path', default = 'my_teacher')
     parser.add_argument('--beta', default = 1000)
     parser.add_argument('--tau1', default = 4)
     parser.add_argument('--tau2', default = 1)
