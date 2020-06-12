@@ -21,5 +21,11 @@ We propose the RElationship FacIlitated Local cLassifiEr Distillation (REFILLED)
 <img src='figures/two_stage.png' width='800' div align=center>
 
 ## Experiment Results
+REFILLED can be used in several applications, e.g., standard knowledge distillation, cross-task knowledge distillation and middle-shot learning. Standard knowledge distillation is widely used and we show the results under this setting below. Experiment results of cross-task knowledge distillation and middle-shot learning can be found in the paper.
+
+**Dataset:CIFAR100 Teacher:WRN-(40-2) Student:WRN-{(40,2),(16,2),(40,1),(16,1)}**
+|(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
+|:------------:|:----:|:----:|:----:|:----:|
+|Teacher|
 
 ## Code and Arguments
