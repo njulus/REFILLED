@@ -26,40 +26,40 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 **Dataset:CIFAR100 Teacher:WRN-(40-2) Student:WRN-{(40,2),(16,2),(40,1),(16,1)}**
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
-|Teacher       |74.44      |      |      |      |
-|Student       |74.44      |70.15      |68.97      |65.44      |
-|KD            |75.47      |71.87      |70.46      |66.54      |
-|FitNet        |74.29      |70.89      |68.66      |65.38      |
-|AT            |74.76      |71.06      |69.85      |65.31      |
-|NST           |74.81      |71.19      |68.00      |64.95      |
-|VID-I         |75.25      |73.31      |71.51      |66.32      |
-|KD + VID-1    |76.11      |73.69      |72.16      |67.19      |
-|RKD           |76.62      |72.56      |72.18      |65.22      |
-|REFILLED      |**77.49**      |**74.01**      |**72.72**      |**67.56**      |
+|Teacher       |76.04      |      |      |      |
+|Student       |76.04      |70.15      |71.53      |66.30      |
+|REFILLED after stage1     |00.00      |00.00      |00.00      |55.47      |
+|REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
 
 ## Code and Arguments
 This code implements REFILLED under the setting where a source task and a target task is given. **main.py** is the main file and the arguments it take are listed below.
 
-- `data_name`: name of dataset ('CIFAR100', 'CUB200'), defautl to 'CIFAR100'
-- `model_name`: name of student model ('WideResNet', 'ResNet', 'MobileNet'), default to 'WideResNet'
-- `depth`: depth of WideResNet and ResNet, default to 16
-- `width`: width of WideResNet, default to 1
-- `ca`: channel parameter of MobileNet, default to 0.25
-- `number_of_classes`: just as name, default to 100
-- `dropout_rate`: just as name, default to 0.3
-- `train_batch_size`: just as name, default to 512
-- `validate_batch_size`: just as name, default to 128
-- `test_batch_size`: just as name, default to 128
-- `learning_rate_in_stage1`: initial learning rate used in stage1, default to 0.1
-- `learning_rate_in_stage2`: initial learning rate used in stage2, default to 0.1
-- `momentum`: just as name, default to 0.9
-- `weight_decay`: just as name, default to 0.0005
-- `nesterov`: just as name, default to True
-- `number_of_epochs_in_stage1`: just as name, default to 2
-- `number_of_epochs_in_stage2`: just as name, default to 2
-- `flag_gpu`: a boolean variable indicating whether the model is trained on a GPU, default to True
-- `model_path_stage1`: where to save the model trained in stage1, default to 'saves/trained_models/ReFilled_stage1/'
-- `model_path_stage2`: where to save the model trained in stage2, default to 'saves/trained_models/ReFilled_stage2/'
-- `result_path_stage1`: where to save the training results in stage1, default to 'saves/results/ReFilled_stage1/'
-- `result_path_stage2`: where to save the training results in stage2, default to 'saves/results/ReFilled_stage2/'
-- `teacher_model_file_path`: a file containing the parameters of the well-trained teacher model, default to 'my_teacher'
+### Task Arguments
+- `data_name`: name of dataset
+- `teacher_network_name`: architecture of teacher model
+- `student_network_name`: architecture of student model
+### Experiment Environment Arguments
+- `devices`: list of gpu ids
+- `flag_gpu`: whether to use gpu or not
+- `flag_no_bar`: whether to use a bar
+- `n_workers`: number of workers in data loader
+- `flag_tuning`: whether to tune the hyperparameters on validation set or train on the whole training set
+### Optimizer Arguments
+- `lr1`: initial learning rate in stage 1
+- `lr2`: initial learning rate in stage 2
+- `point`: when to decrease the learning rate
+- `gamma`: the extent of learning rate decrease
+- `wd`: weight decay
+- `mo`: momentum
+### Network Arguments
+- `depth`: depth of resnet and wide_resnet
+- `width`: width of wide_resnet
+- `ca`: channel coefficient of mobile_net
+- `dropout_rate`: dropout rate of the network
+### Training Procedure Arguments
+- `n_training_epochs1`: number of training epochs in stage 1
+- `n_training_epochs2`: number of training epochs in stage 2
+- `batch_size`: batch size in training
+- `tau1`: temperature for stochastic triplet embedding in stage 1
+- `tau2`: temperature for local distillation in stage 2
+- `lambd`: weight of teaching loss in stage 2
