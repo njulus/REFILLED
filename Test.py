@@ -2,58 +2,72 @@
 """
 @Author: Su Lu
 
-@Date: 2019-07-15 14:54:19
+@Date: 2020-12-09 20:03:32
 """
 
 import torch
-from torch.utils.data import DataLoader
+from torch.nn import functional as F
+from tqdm import tqdm
+from utils import global_variable as GV
 
-def do_test_process(dataset, batch_size, model, flag_gpu, devices):
-    """
-    Introduction of function
-    ------------------------
-    This function tests model on dataset.
-
-    Parameters
-    ----------
-    dataset: torch.utils.Dataset
-        dataset to do test on
-    batch_size: int
-        batch size used in dataset_loader
-    model: torch.nn.Module
-        model to test
-    flag_gpu: bool
-        indicate whether to use gpu or not
-    devices: list of int
-        ids of devices
-    
-    Returns
-    -------
-    accuracy: float
-        classification accuracy on model on dataset
-    """
-
-    # generate dataset_loader
-    dataset_loader = DataLoader(dataset = dataset, batch_size = batch_size, shuffle = False, drop_last = False)
-
-    # change model to evaluate mode
-    model.eval()
-
-    # init number of instances
-    number_of_instances = dataset.__len__()
+def test(args, data_loader, network, description='testing'):
     # init accuracy
     accuracy = 0
-    # loop for each mini batch in dataset_loader
-    for mini_batch_index, (feature, fine_label) in enumerate(dataset_loader):
-        feature = feature.float().cuda(devices[0]) if flag_gpu else feature.float()
-        fine_label = fine_label.long().cuda(devices[0]) if flag_gpu else fine_label.long()
 
-        # model forward process
-        model_output = model(feature)
+    network.eval()
+    for batch_index, batch in enumerate(data_loader):
+        images, labels = batch
+        images = images.float().cuda(args.devices[0])
+        labels = labels.long().cuda(args.devices[0])
+        
+        with torch.no_grad():
+            logits = network.forward(images)
+        prediction = torch.argmax(logits, dim=1)
+        accuracy += torch.sum((prediction == labels).float()).cpu().item()
 
-        # update accuracy
-        predicted_label = torch.max(model_output, dim = 1)[1]
-        accuracy += torch.sum(predicted_label == fine_label).data.cpu().item()
-    
-    accuracy /= number_of_instances
+    accuracy /= data_loader.dataset.__len__()
+    return accuracy
+
+
+
+def test_ncm(args, data_loader, network, description='testing'):
+    # init class center and class count
+    n_classes = data_loader.dataset.get_n_classes()
+    n_dimension = network.fc.in_features
+    class_center = torch.zeros((n_classes, n_dimension)).cuda(args.devices[0])
+    class_count = torch.zeros(n_classes).cuda(args.devices[0])
+
+    network.eval()
+    for batch_index, batch in enumerate(data_loader):
+        images, labels = batch
+        images = images.float().cuda(args.devices[0])
+        labels = labels.long().cuda(args.devices[0])
+        
+        with torch.no_grad():
+            embedding = network.forward(images, flag_embedding=True)
+            for i in range(0, n_classes):
+                index_of_class_i = (labels == i)
+                class_center[i] += torch.sum(embedding[index_of_class_i], dim=0)
+                class_count[i] += index_of_class_i.size()[0]
+    # get class center
+    class_count = class_count.unsqueeze(1)
+    class_center = class_center / class_count
+    class_center = F.normalize(class_center, p=2, dim=1)
+
+    # init accuracy
+    accuracy = 0
+
+    network.eval()
+    for batch_index, batch in enumerate(data_loader):
+        images, labels = batch
+        images = images.float().cuda(args.devices[0])
+        labels = labels.long().cuda(args.devices[0])
+
+        with torch.no_grad():
+            embedding = network.forward(images, flag_embedding=True)
+            logits = torch.mm(embedding, class_center.t())
+        prediction = torch.argmax(logits, dim=1)
+        accuracy += torch.sum((prediction == labels).float()).cpu().item()
+
+    accuracy /= data_loader.dataset.__len__()
     return accuracy

@@ -2,464 +2,260 @@
 """
 @Author: Su Lu
 
-@Date: 2019-08-14 15:33:09
+@Date: 2020-12-09 20:42:47
 """
 
 import argparse
-import pickle
-import importlib
 import random
-import os
-import warnings
-warnings.filterwarnings('ignore')
+import importlib
+import platform
 
 import numpy as np
 
 import torch
+from torch import nn
+from torchvision import models
 
-from torchvision import transforms
+from networks import resnet, wide_resnet, mobile_net
 
-from networks import wide_resnet
-from networks import resnet
-from networks import mobile_net
-import Train
-import Test
-from utils import evaluate_embedding
+from Train import train_stage1
+from Train import train_stage2
+from Test import test
+from utils import global_variable as GV
+import os
 
-
-def lr_lambda_in_stage1(epoch):
-    """
-    Introduction of function
-    ------------------------
-    This function acts as a parameter passed to Train.do_train_process().
-    This function controls the change of learning rate in stage1.
-
-    Parameters
-    ----------
-    epoch: int
-        current epoch
-    
-    Returns
-    -------
-    efficient: float
-        efficient controlling the change of learning rate
-    """
-
-    efficient = 1
-    return efficient
-
-
-def lr_lambda_in_stage2(epoch):
-    """
-    Introduction of function
-    ------------------------
-    This function acts as a parameter passed to Train.do_train_process().
-    This function controls the change of learning rate in stage2.
-
-    Parameters
-    ----------
-    epoch: int
-        current epoch
-    
-    Returns
-    -------
-    efficient: float
-        efficient controlling the change of learning rate
-    """
-
-    if epoch >= 0 and epoch < 100:
-        efficient = 1
-    elif epoch >= 100 and epoch < 140:
-        efficient = 0.1
-    else:
-        efficient = 0.01
-    return efficient
+def display_args(args):
+    print('===== task arguments =====')
+    print('data_name = %s' % (args.data_name))
+    print('teacher_network_name = %s' % (args.teacher_network_name))
+    print('student_network_name = %s' % (args.student_network_name))
+    print('===== experiment environment arguments =====')
+    print('devices = %s' % (str(args.devices)))
+    print('flag_debug = %r' % (args.flag_debug))
+    print('flag_no_bar = %r' % (args.flag_no_bar))
+    print('n_workers = %d' % (args.n_workers))
+    print('flag_tuning = %r' % (args.flag_tuning))
+    print('===== optimizer arguments =====')
+    print('lr1 = %f' % (args.lr1))
+    print('lr2 = %f' % (args.lr2))
+    print('point = %s' % str((args.point)))
+    print('gamma = %f' % (args.gamma))
+    print('weight_decay = %f' % (args.wd))
+    print('momentum = %f' % (args.mo))
+    print('===== network arguments =====')
+    print('depth = %d' % (args.depth))
+    print('width = %d' % (args.width))
+    print('ca = %f' % (args.ca))
+    print('dropout_rate = %d' % (args.dropout_rate))
+    print('===== training procedure arguments =====')
+    print('n_training_epochs1 = %d' % (args.n_training_epochs1))
+    print('n_training_epochs2 = %d' % (args.n_training_epochs2))
+    print('batch_size = %d' % (args.batch_size))
+    print('tau1 = %f' % (args.tau1))
+    print('tau2 = %f' % (args.tau2))
+    print('lambd = %f' % (args.lambd))
 
 
 
-if __name__ == "__main__":    
-    # set gpu
-    devices = [0, 1]
+if __name__ == '__main__':
+    # set random seed
+    random.seed(960402)
+    np.random.seed(960402)
+    torch.manual_seed(960402)
+    torch.cuda.manual_seed(960402)
+    torch.backends.cudnn.deterministic = True
 
     # create a parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_name', default = 'CIFAR100')
-    parser.add_argument('--model_name', default = 'WideResNet')
-    parser.add_argument('--depth', default = 16)
-    parser.add_argument('--width', default = 1)
-    parser.add_argument('--ca', default = 0.25)
-    parser.add_argument('--number_of_classes', default = 100)
-    parser.add_argument('--dropout_rate', default = 0.3)
-    parser.add_argument('--train_batch_size', default = 512)
-    parser.add_argument('--validate_batch_size', default = 128)
-    parser.add_argument('--test_batch_size', default = 128)
-    parser.add_argument('--learning_rate_in_stage1', default = 0.1)
-    parser.add_argument('--learning_rate_in_stage2', default = 0.1)
-    parser.add_argument('--momentum', default = 0.9)
-    parser.add_argument('--weight_decay', default = 0.0005)
-    parser.add_argument('--nesterov', default = True)
-    parser.add_argument('--number_of_epochs_in_stage1', default = 2)
-    parser.add_argument('--number_of_epochs_in_stage2', default = 2)
-    parser.add_argument('--flag_gpu', default = True)
-    parser.add_argument('--model_path_stage1', default = 'saves/trained_models/ReFilled_stage1/')
-    parser.add_argument('--model_path_stage2', default = 'saves/trained_models/ReFilled_stage2/')
-    parser.add_argument('--result_path_stage1', default = 'saves/results/ReFilled_stage1/')
-    parser.add_argument('--result_path_stage2', default = 'saves/results/ReFilled_stage2/')
-    parser.add_argument('--teacher_model_file_path', default = 'my_teacher')
-    parser.add_argument('--beta', default = 1000)
-    parser.add_argument('--tau1', default = 4)
-    parser.add_argument('--tau2', default = 1)
-    parser.add_argument('--tau3', default = 2)
-    parser.add_argument('--debug', default = False)
-    parser.add_argument('--visualize', default = False)
-    
-    # get hyperparameters
+    # task arguments
+    parser.add_argument('--data_name', type=str, default='CIFAR-100', choices=['CIFAR-100', 'CUB-200'])
+    parser.add_argument('--teacher_network_name', type=str, default='wide_resnet', choices=['resnet', 'wide_resnet', 'mobile_net'])
+    parser.add_argument('--student_network_name', type=str, default='wide_resnet', choices=['resnet', 'wide_resnet', 'mobile_net'])
+    # experiment environment arguments
+    parser.add_argument('--devices', type=int, nargs='+', default=GV.DEVICES)
+    parser.add_argument('--flag_debug', action='store_true', default=False)
+    parser.add_argument('--flag_no_bar', action='store_true', default=False)
+    parser.add_argument('--n_workers', type=int, default=GV.WORKERS)
+    parser.add_argument('--flag_tuning', action='store_true', default=False)
+    # optimizer arguments
+    parser.add_argument('--lr1', type=float, default=0.1)
+    parser.add_argument('--lr2', type=float, default=0.1)
+    parser.add_argument('--point', type=int, nargs='+', default=(100,140,180))
+    parser.add_argument('--gamma', type=float, default=0.2)
+    parser.add_argument('--wd', type=float, default=0.0005)  # weight decay
+    parser.add_argument('--mo', type=float, default=0.9)  # momentum
+    # network arguments
+    parser.add_argument('--depth', type=int, default=16)
+    parser.add_argument('--width', type=int, default=1)
+    parser.add_argument('--ca', type=float, default=0.25)  # channel
+    parser.add_argument('--dropout_rate', type=float, default=0.3)
+    # training procedure arguments
+    parser.add_argument('--n_training_epochs1', type=int, default=200)
+    parser.add_argument('--n_training_epochs2', type=int, default=0)
+    parser.add_argument('--batch_size', type=int, default=128)  # training batch size
+    parser.add_argument('--tau1', type=float, default=4) # temperature for stochastic triplet embedding in stage 1
+    parser.add_argument('--tau2', type=float, default=2) # temperature for local distillation in stage 2
+    parser.add_argument('--lambd', type=float, default=0) # weight of teaching loss in stage 2
+
     args = parser.parse_args()
-    data_name = args.data_name
-    model_name = args.model_name
-    data_path = 'datasets/' + data_name + '/'
-    depth = int(args.depth)
-    width = int(args.width)
-    ca = float(args.ca)
-    number_of_classes = int(args.number_of_classes)
-    dropout_rate = float(args.dropout_rate)
-    train_batch_size = int(args.train_batch_size)
-    validate_batch_size = int(args.validate_batch_size)
-    test_batch_size = int(args.test_batch_size)
-    learning_rate_in_stage1 = float(args.learning_rate_in_stage1)
-    learning_rate_in_stage2 = float(args.learning_rate_in_stage2)
-    momentum = float(args.momentum)
-    weight_decay = float(args.weight_decay)
-    nesterov = bool(args.nesterov)
-    number_of_epochs_in_stage1 = int(args.number_of_epochs_in_stage1)
-    number_of_epochs_in_stage2 = int(args.number_of_epochs_in_stage2)
-    flag_gpu = bool(args.flag_gpu)
-    model_path_stage1 = args.model_path_stage1
-    model_path_stage2 = args.model_path_stage2
-    result_path_stage1 = args.result_path_stage1
-    result_path_stage2 = args.result_path_stage2
-    teacher_model_file_path = args.teacher_model_file_path
-    beta = float(args.beta)
-    tau1 = float(args.tau1)
-    tau2 = float(args.tau2)
-    tau3 = float(args.tau3)
-    debug = bool(args.debug)
-    visualize = bool(args.visualize)
-    if data_name == 'CIFAR100':
-        train_transform = transforms.Compose([
-            transforms.RandomCrop(32, padding = 4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
-        ])
-        validate_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
-        ])
-        test_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
-        ])
-    elif data_name == 'CUB200':
-        train_transform = transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
-        validate_transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
-        test_transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
-    
-    lr_lambda_in_stage1 = lr_lambda_in_stage1
-    lr_lambda_in_stage2 = lr_lambda_in_stage2
 
-    # print some information
-    print('data_name = %s' % (data_name))
-    print('model_name = %s' % (model_name))
-    print('depth = %d' % (depth))
-    print('width = %d' % (width))
-    print('number_of_classes = %d' % (number_of_classes))
-    print('dropout_rate = %f' % (dropout_rate))
-    print('learning_rate_in_stage1 = %f' % (learning_rate_in_stage1))
-    print('learning_rate_in_stage2 = %f' % (learning_rate_in_stage2))
-    print('momentum = %f' % (momentum))
-    print('weight_decay = %f' % (weight_decay))
-    print('number_of_epochs_in_stage1 = %d' % (number_of_epochs_in_stage1))
-    print('number_of_epochs_in_stage2 = %d' % (number_of_epochs_in_stage2))
-    print('teacher_model_file_path = %s' % (teacher_model_file_path))
-    print('beta = %f' % (beta))
-    print('tau1 = %f' % (tau1))
-    print('tau2 = %f' % (tau2))
-    print('tau3 = %f' % (tau3))
-    print('flag_gpu = %r' % (flag_gpu))
-    print('debug = %r' % (debug))
-    print('visualize = %r' % (visualize))
+    display_args(args)
 
-    # generate train_dataset, validate_dataset and test_dataset
-    train_data_file_path = data_path + 'train_all'
-    validate_data_file_path = data_path + 'validate'
-    test_data_file_path = data_path + 'test'
+    data_path = 'datasets/' + args.data_name + '/'
 
-    Data = importlib.import_module('dataloaders.Data_' + data_name)
-    train_dataset = Data.MyDataset(data_file_path = train_data_file_path, transform = train_transform)
-    validate_dataset = Data.MyDataset(data_file_path = validate_data_file_path, transform = validate_transform)
-    test_dataset = Data.MyDataset(data_file_path = test_data_file_path, transform = test_transform)
-    
-    # generate teacher
-    if model_name == 'WideResNet':
-        teacher = wide_resnet.WideResNet(depth = 40, width = 2, number_of_classes = number_of_classes,
-            dropout_rate = 0.3)
-        if flag_gpu:
-            if len(devices) != 1:
-                teacher = torch.nn.DataParallel(teacher, device_ids = devices)
-            teacher.load_state_dict(torch.load(teacher_model_file_path))
-            teacher = teacher.cuda(devices[0])
-        else:
-            teacher.load_state_dict(torch.load(teacher_model_file_path, map_location = 'cpu'))
-    elif model_name == 'ResNet':
-        teacher = resnet.ResNet(depth = 110, number_of_classes = number_of_classes)
-        if flag_gpu:
-            if len(devices) != 1:
-                teacher = torch.nn.DataParallel(teacher, device_ids = devices)
-            teacher.load_state_dict(torch.load(teacher_model_file_path))
-            teacher = teacher.cuda(devices[0])
-        else:
-            teacher.load_state_dict(torch.load(teacher_model_file_path, map_location = 'cpu'))
-    elif model_name == 'MobileNet':
-        # teacher = resnet.ResNet(depth = 110, number_of_classes = number_of_classes)
-        teacher = mobile_net.MobileNet(number_of_classes = number_of_classes, ca = 1)
-        if flag_gpu:
-            if len(devices) != 1:
-                teacher = torch.nn.DataParallel(teacher, device_ids = devices)
-            teacher.load_state_dict(torch.load(teacher_model_file_path))
-            teacher = teacher.cuda(devices[0])
-        else:
-            teacher.load_state_dict(torch.load(teacher_model_file_path, map_location = 'cpu'))
-    # set teacher to evaluate mode
+    # import modules
+    Data = importlib.import_module('dataloaders.' + args.data_name)
+    Network = importlib.import_module('networks.' + args.student_network_name)
+
+    # generate data_loader
+    train_data_loader = Data.generate_data_loader(data_path, 'train', args.flag_tuning, args.batch_size, args.n_workers)
+    args.number_of_classes = train_data_loader.dataset.get_n_classes()
+    print('===== train data loader ready. =====')
+    validate_data_loader = Data.generate_data_loader(data_path, 'val', args.flag_tuning, args.batch_size, args.n_workers)
+    print('===== validate data loader ready. =====')
+    test_data_loader = Data.generate_data_loader(data_path, 'test', args.flag_tuning, args.batch_size, args.n_workers)
+    print('===== test data loader ready. =====')
+
+    # generate teacher network
+    if args.teacher_network_name == 'resnet':
+        teacher_args = args
+        teacher_args.depth = 110
+        teacher = resnet.MyNetwork(teacher_args)
+        pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_resnet_teacher.model'
+    elif args.teacher_network_name == 'wide_resnet':
+        teacher_args = args
+        teacher_args.depth, teacher_args.width = 40, 2
+        teacher = wide_resnet.MyNetwork(teacher_args)
+        pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_wide_resnet_teacher.model'
+    elif args.teacher_network_name == 'mobile_net':
+        teacher_args = args
+        teacher_args.ca = 1.0
+        teacher = mobile_net.MyNetwork(teacher_args)
+        pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_mobile_net_teacher.model'
+    record = torch.load(pretrained_teacher_save_path, map_location='cpu')
+    teacher.load_state_dict(record['state_dict'])
+    teacher = teacher.cuda(args.devices[0])
+    if len(args.devices) > 1:
+        teacher = torch.nn.DataParallel(teacher, device_ids=args.devices)
+    # set teacher to evaluation mode
     teacher.eval()
+    print('===== teacher ready. =====')
 
-    # generate model
-    if model_name == 'WideResNet':
-        model = wide_resnet.WideResNet(depth = depth, width = width, number_of_classes = number_of_classes,
-            dropout_rate = dropout_rate)
-        model.apply(wide_resnet.conv_init)
-        if flag_gpu:
-            if len(devices) != 1:
-                model = torch.nn.DataParallel(model, device_ids = devices)
-            model = model.cuda(devices[0])
-    elif model_name == 'ResNet':
-        if depth == 18:
-            model = models.resnet18(num_classes = number_of_classes)
-        elif depth == 34:
-            model = models.resnet34(num_classes = number_of_classes)
-        elif depth == 50:
-            model = models.resnet50(num_classes = number_of_classes)
-        elif depth == 101:
-            model = models.resnet101(num_classes = number_of_classes)
-        else:
-            model = resnet.ResNet(depth = depth, number_of_classes = number_of_classes)
-        if flag_gpu:
-            if len(devices) != 1:
-                model = torch.nn.DataParallel(model, device_ids = devices)
-            model = model.cuda(devices[0])
-    elif model_name == 'MobileNet':
-        model = mobile_net.MobileNet(number_of_classes = number_of_classes, ca = ca)
-        model.apply(mobile_net.conv_init)
-        if flag_gpu:
-            if len(devices) != 1:
-                model = torch.nn.DataParallel(model, device_ids = devices)
-            model = model.cuda(devices[0])
+    # generate student network
+    student = Network.MyNetwork(args)
+    student = student.cuda(args.devices[0])
+    if len(args.devices) > 1:
+        student = torch.nn.DataParallel(student, device_ids=args.devices)
+    print('===== student ready. =====')
 
-    # check teacher NMI
-    teacher_nmi = evaluate_embedding.do_cluster(dataset = validate_dataset,
-        batch_size = validate_batch_size, model = teacher, flag_gpu = flag_gpu, number_of_classes = number_of_classes, devices = devices)
-    print('teacher nmi: %f' % (teacher_nmi))
+    # model save path and statistics save path for stage 1
+    model_save_path1 = 'saves/trained_students/' + \
+                        args.data_name + '_' + args.student_network_name + '_' + args.teacher_network_name + \
+                        '_lr1=' + str(args.lr1) + \
+                        '_wd=' + str(args.wd) + \
+                        '_mo=' + str(args.mo) + \
+                        '_depth=' + str(args.depth) + \
+                        '_width=' + str(args.width) + \
+                        '_ca=' + str(args.ca) + \
+                        '_dropout=' + str(args.dropout_rate) + \
+                        '_batch=' + str(args.batch_size) + \
+                        '_tau1=' + str(args.tau1) + \
+                        '.model'
+    statistics_save_path1 = 'saves/student_statistics/' + \
+                            args.data_name + '_' + args.student_network_name + '_' + args.teacher_network_name + \
+                            '_lr1=' + str(args.lr1) + \
+                            '_wd=' + str(args.wd) + \
+                            '_mo=' + str(args.mo) + \
+                            '_depth=' + str(args.depth) + \
+                            '_width=' + str(args.width) + \
+                            '_ca=' + str(args.ca) + \
+                            '_dropout=' + str(args.dropout_rate) + \
+                            '_batch=' + str(args.batch_size) + \
+                            '_tau1=' + str(args.tau1) + \
+                            '.stat'
 
-    # train process
-    if model_name == 'WideResNet':
-        model_file_path_in_stage1 = model_path_stage1 + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_width=' + str(width) + \
-            '_dropout=' + str(dropout_rate) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr1=' + str(learning_rate_in_stage1) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_tau1=' + str(tau1)
-        model_file_path_in_stage2 = model_path_stage2 + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_width=' + str(width) + \
-            '_dropout=' + str(dropout_rate) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr2=' + str(learning_rate_in_stage2) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_beta=' + str(beta) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-        log_dir = 'saves/runs/' + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_width=' + str(width) + \
-            '_dropout=' + str(dropout_rate) + \
-            '_beta=' + str(beta) + \
-            '_tau1=' + str(tau1) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-    elif model_name == 'ResNet':
-        model_file_path_in_stage1 = model_path_stage1 + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr1=' + str(learning_rate_in_stage1) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_tau1=' + str(tau1)
-        model_file_path_in_stage2 = model_path_stage2 + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr2=' + str(learning_rate_in_stage2) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_beta=' + str(beta) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-        log_dir = 'saves/runs/' + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_beta=' + str(beta) + \
-            '_tau1=' + str(tau1) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-    elif model_name == 'MobileNet':
-        model_file_path_in_stage1 = model_path_stage1 + 'ReFilled' + \
-            '_ca=' + str(ca) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr1=' + str(learning_rate_in_stage1) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_tau1=' + str(tau1)
-        model_file_path_in_stage2 = model_path_stage2 + 'ReFilled' + \
-            '_ca=' + str(ca) + \
-            '_batch=' + str(train_batch_size) + \
-            '_lr2=' + str(learning_rate_in_stage2) + \
-            '_mmt=' + str(momentum) + \
-            '_wd=' + str(weight_decay) + \
-            '_beta=' + str(beta) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-        log_dir = 'saves/runs/' + 'ReFilled' + \
-            '_depth=' + str(depth) + \
-            '_beta=' + str(beta) + \
-            '_tau1=' + str(tau1) + \
-            '_tau2=' + str(tau2) + \
-            '_tau3=' + str(tau3)
-    guiding_loss_after_each_epoch, guiding_nmi_after_each_epoch, \
-        training_loss_after_each_epoch, teaching_loss_after_each_epoch, \
-            training_accuracy_after_each_epoch, validating_accuracy_after_each_epoch = \
-                Train.do_train_process(train_dataset = train_dataset, validate_dataset = validate_dataset,
-                    train_batch_size = train_batch_size, validate_batch_size = validate_batch_size, model = model,
-                    learning_rate_in_stage1 = learning_rate_in_stage1, learning_rate_in_stage2 = learning_rate_in_stage2,
-                    momentum = momentum, weight_decay = weight_decay, nesterov = nesterov, lr_lambda_in_stage1 = lr_lambda_in_stage1,
-                    lr_lambda_in_stage2 = lr_lambda_in_stage2, number_of_epochs_in_stage1 = number_of_epochs_in_stage1,
-                    number_of_epochs_in_stage2 = number_of_epochs_in_stage2, flag_gpu = flag_gpu,
-                    model_file_path_in_stage1 = model_file_path_in_stage1, model_file_path_in_stage2 = model_file_path_in_stage2,
-                    teacher = teacher, beta = beta, tau1 = tau1, tau2 = tau2, tau3 = tau3, debug = debug,
-                    visualize = visualize, log_dir = log_dir, devices = devices, number_of_classes = number_of_classes)
-    
-    # save results if not under debug mode for stage1
-    if not debug:
-        if model_name == 'WideResNet':
-            result_dir_in_stage1 = result_path_stage1 + 'ReFilled' + \
-                '_depth=' + str(depth) + \
-                '_width=' + str(width) + \
-                '_dropout=' + str(dropout_rate) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage1) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_tau1=' + str(tau1)
-        elif model_name == 'ResNet':
-            result_dir_in_stage1 = result_path_stage1 + 'ReFilled' + \
-                '_depth=' + str(depth) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage1) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_tau1=' + str(tau1)
-        elif model_name == 'MobileNet':
-            result_dir_in_stage1 = result_path_stage1 + 'ReFilled' + \
-                '_ca=' + str(ca) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage1) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_tau1=' + str(tau1)
-        if not os.path.exists(result_dir_in_stage1):
-            os.mkdir(result_dir_in_stage1)
-        guiding_loss_after_each_epoch = np.array(guiding_loss_after_each_epoch)
-        guiding_nmi_after_each_epoch = np.array(guiding_nmi_after_each_epoch)
-        np.save(result_dir_in_stage1 + '/guiding_loss_after_each_epoch.npy', guiding_loss_after_each_epoch)
-        np.save(result_dir_in_stage1 + '/guiding_nmi_after_each_epoch.npy', guiding_nmi_after_each_epoch)
+    # create model directories
+    dirs = os.path.dirname(model_save_path1)
+    os.makedirs(dirs, exist_ok=True)
 
-    # save results if not under debug mode for stage2
-    if not debug:
-        if model_name == 'WideResNet':
-            result_dir_in_stage2 = result_path_stage2 + 'ReFilled' + \
-                '_depth=' + str(depth) + \
-                '_width=' + str(width) + \
-                '_dropout=' + str(dropout_rate) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage2) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_beta=' + str(beta) + \
-                '_tau2=' + str(tau2) + \
-                '_tau3=' + str(tau3)
-        elif model_name == 'ResNet':
-            result_dir_in_stage2 = result_path_stage2 + 'ReFilled' + \
-                '_depth=' + str(depth) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage2) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_beta=' + str(beta) + \
-                '_tau2=' + str(tau2) + \
-                '_tau3=' + str(tau3)
-        elif model_name == 'MobileNet':
-            result_dir_in_stage2 = result_path_stage2 + 'ReFilled' + \
-                '_ca=' + str(ca) + \
-                '_batch=' + str(train_batch_size) + \
-                '_lr=' + str(learning_rate_in_stage2) + \
-                '_mmt=' + str(momentum) + \
-                '_wd=' + str(weight_decay) + \
-                '_beta=' + str(beta) + \
-                '_tau2=' + str(tau2) + \
-                '_tau3=' + str(tau3)
-        if not os.path.exists(result_dir_in_stage2):
-            os.mkdir(result_dir_in_stage2)
-        training_loss_after_each_epoch = np.array(training_loss_after_each_epoch)
-        teaching_loss_after_each_epoch = np.array(teaching_loss_after_each_epoch)
-        training_accuracy_after_each_epoch = np.array(training_accuracy_after_each_epoch)
-        validating_accuracy_after_each_epoch = np.array(validating_accuracy_after_each_epoch)
-        np.save(result_dir_in_stage2 + '/training_loss_after_each_epoch.npy', training_loss_after_each_epoch)
-        np.save(result_dir_in_stage2 + '/teaching_loss_after_each_epoch.npy', teaching_loss_after_each_epoch)
-        np.save(result_dir_in_stage2 + '/training_accuracy_after_each_epoch.npy', training_accuracy_after_each_epoch)
-        np.save(result_dir_in_stage2 + '/validating_accuracy_after_each_epoch.npy', validating_accuracy_after_each_epoch)
+    # model training stage 1
+    training_loss_list1, validating_accuracy_list1 = \
+        train_stage1(args, train_data_loader, validate_data_loader, teacher, student, model_save_path1)
+    record = {
+        'training_loss1': training_loss_list1,
+        'validating_accuracy1': validating_accuracy_list1
+    }
 
-    # do test process if not under debug mode
-    if not debug:
-        # load best model found
-        model.load_state_dict(torch.load(model_file_path_in_stage2))
+    # create stats directories
+    dirs = os.path.dirname(statistics_save_path1)
+    os.makedirs(dirs, exist_ok=True)
+    if args.n_training_epochs1 > 0 and (not args.flag_debug):
+        torch.save(record, statistics_save_path1)
+    print('===== training stage 1 finish. =====')
 
-        # test process
-        testing_accuracy = Test.do_test_process(dataset = test_dataset, batch_size = test_batch_size, model = model,
-            flag_gpu = flag_gpu, devices = devices)
-        print('testing_accuracy = %f' % (testing_accuracy))
+    # load best model found in stage 1
+    if not args.flag_debug:
+        record = torch.load(model_save_path1)
+        best_validating_accuracy = record['validating_accuracy']
+        student.load_state_dict(record['state_dict'])
+        print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
+
+    # model save path and statistics save path for stage 2
+    model_save_path2 = 'saves/trained_students/' + \
+                        args.data_name + '_' + args.student_network_name + '_' + args.teacher_network_name + \
+                        '_lr2=' + str(args.lr2) + \
+                        '_point=' + str(args.point) + \
+                        '_gamma=' + str(args.gamma) + \
+                        '_wd=' + str(args.wd) + \
+                        '_mo=' + str(args.mo) + \
+                        '_depth=' + str(args.depth) + \
+                        '_width=' + str(args.width) + \
+                        '_ca=' + str(args.ca) + \
+                        '_dropout=' + str(args.dropout_rate) + \
+                        '_batch=' + str(args.batch_size) + \
+                        '_tau2=' + str(args.tau2) + \
+                        '_lambd=' + str(args.lambd) + \
+                        '.model'
+    statistics_save_path2 = 'saves/student_statistics/' + \
+                            args.data_name + '_' + args.student_network_name + '_' + args.teacher_network_name + \
+                            '_lr2=' + str(args.lr2) + \
+                            '_point=' + str(args.point) + \
+                            '_gamma=' + str(args.gamma) + \
+                            '_wd=' + str(args.wd) + \
+                            '_mo=' + str(args.mo) + \
+                            '_depth=' + str(args.depth) + \
+                            '_width=' + str(args.width) + \
+                            '_ca=' + str(args.ca) + \
+                            '_dropout=' + str(args.dropout_rate) + \
+                            '_batch=' + str(args.batch_size) + \
+                            '_tau2=' + str(args.tau2) + \
+                            '_lambd=' + str(args.lambd) + \
+                            '.stat'
+
+    # model training stage 2
+    training_loss_list2, teaching_loss_list2, training_accuracy_list2, validating_accuracy_list2 = \
+        train_stage2(args, train_data_loader, validate_data_loader, teacher, student, model_save_path2)
+    record = {
+        'training_loss2': training_loss_list2,
+        'teaching_loss2': teaching_loss_list2,
+        'training_accuracy2': training_accuracy_list2,
+        'validating_accuracy2': validating_accuracy_list2
+    }
+
+    # create stats directories
+    dirs = os.path.dirname(statistics_save_path2)
+    os.makedirs(dirs, exist_ok=True)
+    if args.n_training_epochs2 > 0 and (not args.flag_debug):
+        torch.save(record, statistics_save_path2)
+    print('===== training stage 2 finish. =====')
+
+    # load best model found in stage 2
+    if not args.flag_debug:
+        record = torch.load(model_save_path2)
+        best_validating_accuracy = record['validating_accuracy']
+        student.load_state_dict(record['state_dict'])
+        print('===== best model in stage 2 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
+
+    # model testing
+    testing_accuracy = test(args, test_data_loader, student, description='testing')
+    print('===== testing finished, testing acc = %f. =====' % (testing_accuracy))

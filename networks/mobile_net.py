@@ -12,23 +12,7 @@ from torch import nn
 from torch.nn import init
 from torch.nn import functional as F
 
-
 def conv_init(m):
-    """
-    Introduction of function
-    ------------------------
-    This function inits parameters in a layer.
-
-    Parameters
-    ----------
-    m: torch.nn.Module
-        a layer containing parameters to be inited
-
-    Returns
-    -------
-    NONE
-    """
-
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         init.xavier_uniform_(m.weight, gain = np.sqrt(2))
@@ -37,44 +21,8 @@ def conv_init(m):
         init.constant_(m.bias, 0)
 
 
+
 class BasicBlock(nn.Module):
-    """
-    Introduction of class
-    ---------------------
-    This class implements basic block in mobile network.
-
-    Variables
-    ---------
-    in_channels_of_basic_block: int
-        number of input channels of basic block
-    out_channels_of_basic_block: int
-        number of output channels of basic block 
-    stride: int
-        stride used in convolutional layers in basic block
-
-    Attributes
-    ----------
-    in_channels_of_basic_block: int
-        number of input channels of basic block
-    out_channels_of_basic_block: int
-        number of output channels of basic block 
-    stride: int
-        stride used in convolutional layers in basic block
-    conv1: torch.nn.Conv2d
-        first convolutional layer in basic block
-    bn1: torch.nn.BatchNorm2d
-        first batch normalization layer in basic block
-    conv2: torch.nn.Conv2d
-        second convolutional layer in basic block
-    bn2: torch.nn.BatchNorm2d
-        second convolutional layer in basic block
-
-    Methods
-    -------
-    forward([x]): torch.Tensor
-        forward process of basic block
-    """
-
     def __init__(self, in_channels_of_basic_block, out_channels_of_basic_block, stride = 1):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels = in_channels_of_basic_block, out_channels = in_channels_of_basic_block,
@@ -85,22 +33,6 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(num_features = out_channels_of_basic_block)
 
     def forward(self, x):
-        """
-        Introduction of method
-        ----------------------
-        This method implements forward process of basic block in mobile network.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            input of basic block
-
-        Returns
-        -------
-        y: torch.Tensor
-            output of basic block
-        """
-
         y = self.conv1(x)
         y = self.bn1(y)
         y = F.relu(y, inplace = True)
@@ -111,11 +43,13 @@ class BasicBlock(nn.Module):
         return y
 
 
-class MobileNet(nn.Module):
-    def __init__(self, number_of_classes, ca):
-        super(MobileNet, self).__init__()
-        self.number_of_classes = number_of_classes
-        self.ca = ca
+
+class MyNetwork(nn.Module):
+    def __init__(self, args):
+        super(MyNetwork, self).__init__()
+        self.args = args
+        ca = args.ca
+        number_of_classes = args.number_of_classes
         self.cfg = [64, (128, 2), 128, (256, 2), 256, (512, 2), 512, 512, 512, 512, 512, (1024, 2), 1024]
         for i in range(0, len(self.cfg)):
             if isinstance(self.cfg[i], int):
@@ -140,23 +74,30 @@ class MobileNet(nn.Module):
             in_planes = out_planes
         return nn.Sequential(*layers)
     
-    def forward(self, x, flag = 0):
-        if flag == 0:
-            y = self.conv1(x)
-            y = self.bn1(y)
-            y = F.relu(y, inplace = True)
-            y = self.layers(y)
-            y = self.pool(y)
-            y = y.view(y.size()[0], -1)
-            y = self.fc(y)
-
+    def forward(self, x, flag_embedding=False, flag_both=False):
+        y = self.conv1(x)
+        y = self.bn1(y)
+        y = F.relu(y, inplace = True)
+        y = self.layers(y)
+        y = self.pool(y)
+        y = y.view(y.size()[0], -1)
+        if flag_embedding:
             return y
-        elif flag == 1:
-            y = self.conv1(x)
-            y = self.bn1(y)
-            y = F.relu(y, inplace = True)
-            y = self.layers(y)
-            y = self.pool(y)
-            y = y.view(y.size()[0], -1)
+        else:
+            l = self.fc(y)
+            if flag_both:
+                return l, y
+            else:
+                return l
+    
+    def get_network_params(self):
+        modules = [self.conv1, self.bn1, self.layers, self.pool]
+        for i in range(len(modules)):
+            for j in modules[i].parameters():
+                yield j
 
-            return y
+    def get_classifier_params(self):
+        modules = [self.fc]
+        for i in range(len(modules)):
+            for j in modules[i].parameters():
+                yield j

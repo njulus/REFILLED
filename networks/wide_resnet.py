@@ -12,23 +12,7 @@ from torch import nn
 from torch.nn import init
 from torch.nn import functional as F
 
-
 def conv_init(m):
-    """
-    Introduction of function
-    ------------------------
-    This function inits parameters in a layer.
-
-    Parameters
-    ----------
-    m: torch.nn.Module
-        a layer containing parameters to be inited
-
-    Returns
-    -------
-    NONE
-    """
-
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         init.xavier_uniform_(m.weight, gain = np.sqrt(2))
@@ -38,52 +22,8 @@ def conv_init(m):
         init.constant_(m.bias, 0)
 
 
+
 class BasicBlock(nn.Module):
-    """
-    Introduction of class
-    ---------------------
-    This class implements basic block in wide residual network.
-
-    Variables
-    ---------
-    in_channels_of_basic_block: int
-        number of input channels of basic block
-    out_channels_of_basic_block: int
-        number of output channels of basic block
-    dropout_rate: float
-        dropout rate used by dropout layer of basic block
-    stride: int
-        stride used by convolutional layer of basic block
-    
-    Attributes
-    ----------
-    in_channels_of_basic_block: int
-        number of input channels of basic block
-    out_channels_of_basic_block: int
-        number of output channels of basic block
-    dropout_rate: float
-        dropout rate used by dropout layer of basic block
-    stride: int
-        stride used by convolutional layer of basic block
-    bn1: torch.nn.BatchNorm2d
-        first batch normalization layer
-    conv1: torch.nn.Conv2d
-        first convolutional layer
-    dropout: torch.nn.Dropout
-        dropout layer
-    bn2: torch.nn.BatchNorm2d
-        second batch normalization layer
-    conv2: torch.nn.Conv2d
-        second convolutional layer
-    shortcut: torch.nn.Sequential
-        shortcut in basic block
-    
-    Methods
-    -------
-    forward([x]): torch.autograd.Variable
-        forward process of basic block
-    """
-
     def __init__(self, in_channels_of_basic_block, out_channels_of_basic_block, dropout_rate, stride):
         super(BasicBlock, self).__init__()
         self.in_channels = in_channels_of_basic_block
@@ -107,22 +47,6 @@ class BasicBlock(nn.Module):
             )
 
     def forward(self, x):
-        """  
-        Introduction of method
-        ----------------------
-        This method implements forward process of basic block in wide residual resnet.
-
-        Parameters
-        ----------
-        x: torch.autograd.Variable
-            input of the basic block
-        
-        Returns
-        -------
-        y: torch.autograd.Variable
-            output of the basic block
-        """
-
         y = self.bn1(x)
         y = F.relu(y)
         y = self.conv1(y)
@@ -135,66 +59,14 @@ class BasicBlock(nn.Module):
         return y
     
 
-class WideResNet(nn.Module):
-    """
-    Introduction of class
-    ---------------------
-    This class implements wide residual network.
-
-    Variables
-    ---------
-    depth: int
-        total number of simple layers in wide residual network
-    width: int
-        multiple of number of channels after each layer
-    number_of_classes: int
-        number of classes in a classification task
-    dropout_rate: float
-        dropout_rate used by dropout layers
-    
-    Attributes
-    ----------
-    depth: int
-        total number of simple layers in wide residual network
-    width: int
-        multiple of number of channels after each layer
-    number_of_classes: int
-        number of classes in a classification task
-    dropout_rate: float
-        dropout_rate used by dropout layers
-    conv1: torch.nn.Conv2d
-        first convolutional layers in wide residual network
-    layer1: torch.nn.Sequential
-        first layer composed of several basic blocks
-    layer2: torch.nn.Sequential
-        second layer composed of several basic blocks
-    layer3: torch.nn.Sequential
-        third layer composed of several basic blocks
-    bn: torch.nn.BatchNorm2d
-        batch normalization layer
-    pool: torch.nn.AdapativeAvgPool2d
-        adaptive average pooling layer
-    fc: torch.nn.Linear
-        full connected(linear) layer
-    
-    Methods
-    -------
-    generate_layer([in_channels_of_layer, out_channels_of_layer,
-        number_of_blocks, dropout_rate, stride_of_first_block]): torch.nn.Sequential
-        generate a whole layer composed of several basic blocks and some parameters defining
-        this layer and basic blocks are given to the method
-    forward([x]): torch.autograd.Variabel
-        forward process of wide residual network
-    forward_embedding([x]): torch.autograd.Variable
-        forward process of wide residual network in embedding
-    """
-
-    def __init__(self, depth, width, number_of_classes, dropout_rate):
-        super(WideResNet, self).__init__()
-        self.depth = depth
-        self.width = width
-        self.number_of_classes = number_of_classes
-        self.dropout_rate = dropout_rate
+class MyNetwork(nn.Module):
+    def __init__(self, args):
+        super(MyNetwork, self).__init__()
+        self.args = args
+        depth = args.depth
+        width = args.width
+        number_of_classes = args.number_of_classes
+        dropout_rate = args.dropout_rate
 
         # depth must be of form (6n + 4)
         # number of convolutional layers in a basic block = 2
@@ -228,30 +100,6 @@ class WideResNet(nn.Module):
         
     def generate_layer(self, in_channels_of_layer, out_channels_of_layer, number_of_blocks,
                        dropout_rate, stride_of_first_block):
-        """ 
-        Introduction of method
-        ----------------------
-        This method generates a whole layer using basic blocks.
-
-        Parameters
-        ----------
-        in_channels_of_layer: int
-            number of input channels of layer
-        out_channels_of_layer: int
-            number of output channels of layer
-        number_of_blocks: int
-            number of basic blocks in a single layer
-        dropout_rate: float
-            dropout rate used by basic blocks in this layer
-        stride_of_first_block: int
-            stride used by first basic block in this layer, stride of other basic blocks is 1
-        
-        Returns
-        -------
-        layer: torch.nn.Sequential
-            a whole layer generated using basic blocks
-        """
-
         strides_of_each_block = [stride_of_first_block] + [1] * (number_of_blocks - 1)
         blocks = []
         # generate a layer with number_of_blocks blocks
@@ -268,23 +116,7 @@ class WideResNet(nn.Module):
         layer = nn.Sequential(*blocks)
         return layer
 
-    def forward(self, x):
-        """
-        Introduction of method
-        ----------------------
-        This method implements forward process of wide residual network.
-
-        Parameters
-        ----------
-        x: torch.autograd.Variable
-            input of wide residual network
-        
-        Returns
-        -------
-        y: torch.autograd.Variable
-            output of wide residual network
-        """
-
+    def forward(self, x, flag_embedding=False, flag_both=False):
         y = self.conv1(x)
         y = self.layer1(y)
         y = self.layer2(y)
@@ -293,34 +125,23 @@ class WideResNet(nn.Module):
         y = F.relu(y)
         y = self.pool(y)
         y = y.view(y.size()[0], -1)
-        y = self.fc(y)
+        if flag_embedding:
+            return y
+        else:
+            l = self.fc(y)
+            if flag_both:
+                return l, y
+            else:
+                return l
 
-        return y
+    def get_network_params(self):
+        modules = [self.conv1, self.layer1, self.layer2, self.layer3, self.bn, self.pool]
+        for i in range(len(modules)):
+            for j in modules[i].parameters():
+                yield j
 
-    def forward_embedding(self, x):
-        """
-        Introduction of method
-        ----------------------
-        This method implements forward process of wide residual network used in embedding.
-
-        Parameters
-        ----------
-        x: torch.autograd.Variable
-            input of wide residual network
-        
-        Returns
-        -------
-        y: torch.autograd.Variable
-            output of wide residual network in embedding
-        """
-
-        y = self.conv1(x)
-        y = self.layer1(y)
-        y = self.layer2(y)
-        y = self.layer3(y)
-        y = self.bn(y)
-        y = F.relu(y)
-        y = F.avg_pool2d(y, 8)
-        y = y.view(y.size()[0], -1)
-        
-        return y
+    def get_classifier_params(self):
+        modules = [self.fc]
+        for i in range(len(modules)):
+            for j in modules[i].parameters():
+                yield j
