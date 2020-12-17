@@ -28,18 +28,20 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 |:------------:|:----:|:----:|:----:|:----:|
 |Teacher       |[76.04](https://drive.google.com/file/d/1cHOa4sGGf_df1pZhG1SXGHkdy3fk6Us2/view?usp=sharing)      |      |      |      |
 |Student       |[76.04](https://drive.google.com/file/d/1lz2wd7CxeLweyCdQD-qyjsmDy52dFbdP/view?usp=sharing)      |[70.15](https://drive.google.com/file/d/1V4UgzUuazpXBLT5ljbeluBTbb46e571I/view?usp=sharing)      |[71.53](https://drive.google.com/file/d/18fEOWIDL02DKQiw3XFOy9p_3753__TDz/view?usp=sharing)      |[66.30](https://drive.google.com/file/d/1XXTjbM2lRn5aqyy2LjpiLfkxcSlMMLLc/view?usp=sharing)      |
-|REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
-|REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
+|Paper Results               |77.49      |74.01      |72.72      |67.56      |
+|REFILLED after stage1 (new) |00.00      |00.00      |00.00      |00.00      |
+|REFILLED after stage2 (new) |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
 
 **All the results and models will be released soon.**
 
 ### CUB-200 with mobile_net
-|(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
+|width multiplier|1.00|0.75|0.50|0.25|
 |:------------:|:----:|:----:|:----:|:----:|
 |Teacher       |[76.19](https://drive.google.com/file/d/1ixlWUbmrbnZc2GCYVaGIEIv952Q9hQet/view?usp=sharing)      |      |      |      |
 |Student       |[76.19](https://drive.google.com/file/d/1xGm29Ydv_J8ZRgHT4Aa5p1utJo0FKO2P/view?usp=sharing)      |[74.49](https://drive.google.com/file/d/1sVF0Ej1n8I3ZJ9CRcoTs3L9fNaeBaA4b/view?usp=sharing)      |[72.68](https://drive.google.com/file/d/1LWNpNW9XZnrM50cF-_eekTj_EheZzzpP/view?usp=sharing)      |[68.80](https://drive.google.com/file/d/1KbHbxJz9J0INz4LGkPDy-NwWZCf_vp_H/view?usp=sharing)      |
-|REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
-|REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
+|Paper Results               |78.95      |78.01      |76.11      |73.42      |
+|REFILLED after stage1 (new) |00.00      |00.00      |00.00      |00.00      |
+|REFILLED after stage2 (new) |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
 
 **All the results and models will be released soon.**
 
