@@ -9,6 +9,7 @@ import argparse
 import random
 import importlib
 import platform
+import copy
 
 import numpy as np
 
@@ -118,17 +119,17 @@ if __name__ == '__main__':
 
     # generate teacher network
     if args.teacher_network_name == 'resnet':
-        teacher_args = args
+        teacher_args = copy.cpoy(args)
         teacher_args.depth = 110
         teacher = resnet.MyNetwork(teacher_args)
         pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_resnet_teacher.model'
     elif args.teacher_network_name == 'wide_resnet':
-        teacher_args = args
+        teacher_args = copy.copy(args)
         teacher_args.depth, teacher_args.width = 40, 2
         teacher = wide_resnet.MyNetwork(teacher_args)
         pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_wide_resnet_teacher.model'
     elif args.teacher_network_name == 'mobile_net':
-        teacher_args = args
+        teacher_args = copy.copy(args)
         teacher_args.ca = 1.0
         teacher = mobile_net.MyNetwork(teacher_args)
         pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_mobile_net_teacher.model'
