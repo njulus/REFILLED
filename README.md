@@ -27,7 +27,7 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
 |Teacher       |[76.04](https://drive.google.com/file/d/1cHOa4sGGf_df1pZhG1SXGHkdy3fk6Us2/view?usp=sharing)      |      |      |      |
-|Student       |[76.04](https://drive.google.com/file/d/1lz2wd7CxeLweyCdQD-qyjsmDy52dFbdP/view?usp=sharing)      |70.15      |71.53      |66.30      |
+|Student       |[76.04](https://drive.google.com/file/d/1lz2wd7CxeLweyCdQD-qyjsmDy52dFbdP/view?usp=sharing)      |[70.15](https://drive.google.com/file/d/1V4UgzUuazpXBLT5ljbeluBTbb46e571I/view?usp=sharing)      |[71.53](https://drive.google.com/file/d/18fEOWIDL02DKQiw3XFOy9p_3753__TDz/view?usp=sharing)      |[66.30](https://drive.google.com/file/d/1XXTjbM2lRn5aqyy2LjpiLfkxcSlMMLLc/view?usp=sharing)      |
 |REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
 |REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
 
@@ -36,8 +36,8 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 ### CUB-200 with mobile_net
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
-|Teacher       |76.19      |      |      |      |
-|Student       |76.19      |74.49      |72.68      |68.80      |
+|Teacher       |[76.19](https://drive.google.com/file/d/1ixlWUbmrbnZc2GCYVaGIEIv952Q9hQet/view?usp=sharing)      |      |      |      |
+|Student       |[76.19](https://drive.google.com/file/d/1xGm29Ydv_J8ZRgHT4Aa5p1utJo0FKO2P/view?usp=sharing)      |[74.49](https://drive.google.com/file/d/1sVF0Ej1n8I3ZJ9CRcoTs3L9fNaeBaA4b/view?usp=sharing)      |[72.68](https://drive.google.com/file/d/1LWNpNW9XZnrM50cF-_eekTj_EheZzzpP/view?usp=sharing)      |[68.80](https://drive.google.com/file/d/1KbHbxJz9J0INz4LGkPDy-NwWZCf_vp_H/view?usp=sharing)      |
 |REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
 |REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
 
