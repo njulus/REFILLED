@@ -23,13 +23,27 @@ We propose the RElationship FacIlitated Local cLassifiEr Distillation (REFILLED)
 ## Experiment Results
 REFILLED can be used in several applications, e.g., standard knowledge distillation, cross-task knowledge distillation and middle-shot learning. Standard knowledge distillation is widely used and we show the results under this setting below. Experiment results of cross-task knowledge distillation and middle-shot learning can be found in the paper.
 
-**Dataset:CIFAR100 Teacher:WRN-(40-2) Student:WRN-{(40,2),(16,2),(40,1),(16,1)}**
+**Dataset:CIFAR100**
+**Teacher:wide_resnet-(40-2)**
+**Student:wide_resnet-{(40,2),(16,2),(40,1),(16,1)}**
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
 |Teacher       |76.04      |      |      |      |
 |Student       |76.04      |70.15      |71.53      |66.30      |
-|REFILLED after stage1     |00.00      |00.00      |00.00      |55.47      |
+|REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
 |REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
+**All the results and models will be released soon.**
+
+**Dataset:CUB200**
+**Teacher:mobile_net-1.0**
+**Student:mobile_net-{1.0,0.75,0.5,0.25}**
+|(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
+|:------------:|:----:|:----:|:----:|:----:|
+|Teacher       |76.19      |      |      |      |
+|Student       |76.19      |74.49      |72.68      |68.80      |
+|REFILLED after stage1     |00.00      |00.00      |00.00      |00.00      |
+|REFILLED after stage2     |**00.00**  |**00.00**  |**00.00**  |**00.00**  |
+**All the results and models will be released soon.**
 
 ## Code and Arguments
 This code implements REFILLED under the setting where a source task and a target task is given. **main.py** is the main file and the arguments it take are listed below.
