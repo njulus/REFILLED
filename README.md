@@ -28,6 +28,9 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 **Teacher:wide_resnet-(40-2)**
 
 **Student:wide_resnet-{(40,2),(16,2),(40,1),(16,1)}**
+|Dataset: CIFAR-100|
+|Teacher: wide_resnet-(40,2)|
+|Student: wide_resnet-{(40,2), (16,2), (40,1), (16,1)}|
 |(depth, width)|(40,2)|(16,2)|(40,1)|(16,1)|
 |:------------:|:----:|:----:|:----:|:----:|
 |Teacher       |76.04      |      |      |      |
