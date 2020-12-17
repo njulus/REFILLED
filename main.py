@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=128)  # training batch size
     parser.add_argument('--tau1', type=float, default=4) # temperature for stochastic triplet embedding in stage 1
     parser.add_argument('--tau2', type=float, default=2) # temperature for local distillation in stage 2
-    parser.add_argument('--lambd', type=float, default=0) # weight of teaching loss in stage 2
+    parser.add_argument('--lambd', type=float, default=1) # weight of teaching loss in stage 2
 
     args = parser.parse_args()
 
