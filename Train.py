@@ -298,7 +298,8 @@ def train_stage2(args, train_data_loader, validate_data_loader, teacher, student
 
             # compute teacher logits and teaching loss
             with torch.no_grad():
-                teacher_logits = torch.mm(student_embedding, class_center_in_batch.t())
+                teacher_embedding = teacher.forward(images, flag_embedding=True)
+                teacher_logits = torch.mm(teacher_embedding, class_center_in_batch.t())
             
             teaching_loss_value = args.lambd * teaching_loss_function(
                 F.log_softmax(student_logits[:, class_in_batch] / args.tau2),
