@@ -52,6 +52,7 @@ def display_args(args):
     print('n_training_epochs1 = %d' % (args.n_training_epochs1))
     print('n_training_epochs2 = %d' % (args.n_training_epochs2))
     print('batch_size = %d' % (args.batch_size))
+    print('flag_merge = %r' % (args.flag_merge))
     print('tau1 = %f' % (args.tau1))
     print('tau2 = %f' % (args.tau2))
     print('lambd = %f' % (args.lambd))
@@ -94,9 +95,10 @@ if __name__ == '__main__':
     parser.add_argument('--n_training_epochs1', type=int, default=200)
     parser.add_argument('--n_training_epochs2', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=128)  # training batch size
+    parser.add_argument('--flag_merge', action='store_true', default=False)
     parser.add_argument('--tau1', type=float, default=4) # temperature for stochastic triplet embedding in stage 1
     parser.add_argument('--tau2', type=float, default=2) # temperature for local distillation in stage 2
-    parser.add_argument('--lambd', type=float, default=1) # weight of teaching loss in stage 2
+    parser.add_argument('--lambd', type=float, default=100) # weight of teaching loss in stage 2
 
     args = parser.parse_args()
 
@@ -119,7 +121,7 @@ if __name__ == '__main__':
 
     # generate teacher network
     if args.teacher_network_name == 'resnet':
-        teacher_args = copy.cpoy(args)
+        teacher_args = copy.copy(args)
         teacher_args.depth = 110
         teacher = resnet.MyNetwork(teacher_args)
         pretrained_teacher_save_path = 'saves/pretrained_teachers/' + args.data_name + '_resnet_teacher.model'
@@ -196,10 +198,11 @@ if __name__ == '__main__':
 
     # load best model found in stage 1
     if not args.flag_debug:
-        record = torch.load(model_save_path1)
-        best_validating_accuracy = record['validating_accuracy']
-        student.load_state_dict(record['state_dict'])
-        print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
+        print('===== without stage 1 =====')
+        # record = torch.load(model_save_path1)
+        # best_validating_accuracy = record['validating_accuracy']
+        # student.load_state_dict(record['state_dict'])
+        # print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
 
     # model save path and statistics save path for stage 2
     model_save_path2 = 'saves/trained_students/' + \

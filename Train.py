@@ -22,6 +22,7 @@ from torch.nn import functional as F
 from pytorch_metric_learning.miners import TripletMarginMiner
 
 from Test import test, test_ncm
+from utils.triplet import merge
 
 def pretrain(args, train_data_loader, validate_data_loader, network, model_save_path):
     # build a loss function
@@ -140,44 +141,78 @@ def train_stage1(args, train_data_loader, validate_data_loader, teacher, student
             student_embedding = student.forward(images, flag_embedding=True)
             student_embedding = F.normalize(student_embedding, p=2, dim=1)
 
-            # generate triplets
-            with torch.no_grad():
-                anchor_id, positive_id, negative_id = miner(student_embedding, labels)
+            # use semi-hard triplet mining
+            if not args.flag_merge:
+                # generate triplets
+                with torch.no_grad():
+                    anchor_id, positive_id, negative_id = miner(student_embedding, labels)
+                # get teacher embedding in triplets
+                teacher_anchor = teacher_embedding[anchor_id]
+                teacher_positive = teacher_embedding[positive_id]
+                teacher_negative = teacher_embedding[negative_id]
+                # get student embedding in triplets
+                student_anchor = student_embedding[anchor_id]
+                student_positive = student_embedding[positive_id]
+                student_negative = student_embedding[negative_id]
+                # get a-p dist and a-n dist in teacher embedding
+                teacher_ap_dist = torch.norm(teacher_anchor - teacher_positive, p=2, dim=1)
+                teacher_an_dist = torch.norm(teacher_anchor - teacher_negative, p=2, dim=1)
+                # get a-p dist and a-n dist in student embedding
+                student_ap_dist = torch.norm(student_anchor - student_positive, p=2, dim=1)
+                student_an_dist = torch.norm(student_anchor - student_negative, p=2, dim=1)
+                # get probability of triplets in teacher embedding
+                teacher_prob = torch.sigmoid((teacher_an_dist - teacher_ap_dist) / args.tau1)
+                teacher_prob_aug = torch.cat([teacher_prob.unsqueeze(1), 1 - teacher_prob.unsqueeze(1)])
+                # get probability of triplets in student embedding
+                student_prob = torch.sigmoid((student_an_dist - student_ap_dist) / args.tau1)
+                student_prob_aug = torch.cat([student_prob.unsqueeze(1), 1 - student_prob.unsqueeze(1)])
+                # compute loss function
+                loss_value = 1000 * loss_function(torch.log(student_prob_aug), teacher_prob_aug)
+            # use semi-hard tuple mining
+            else:
+                # renew loss function
+                loss_function = nn.KLDivLoss(reduction='none')
+                # generate tuples
+                with torch.no_grad():
+                    anchor_id, positive_id, negative_id = miner(student_embedding, labels)
+                    if args.flag_merge:
+                        merged_anchor_id, merged_positive_id, merged_negative_id, mask = \
+                            merge(args, anchor_id, positive_id, negative_id)
+                # get teacher embedding in tuples
+                teacher_anchor = teacher_embedding[merged_anchor_id]
+                teacher_positive = teacher_embedding[merged_positive_id]
+                teacher_negative = teacher_embedding[merged_negative_id]
+                # get student embedding in tuples
+                student_anchor = student_embedding[merged_anchor_id]
+                student_positive = student_embedding[merged_positive_id]
+                student_negative = student_embedding[merged_negative_id]
+                # get a-p dist and a-n dist in teacher embedding
+                teacher_ap_dist = torch.norm(teacher_anchor - teacher_positive, p=2, dim=1)
+                teacher_an_dist = torch.norm(teacher_anchor.unsqueeze(1) - teacher_negative, p=2, dim=2)
+                teacher_an_dist = torch.masked_fill(teacher_an_dist, mask == 0, 1e9)
+                # get a-p dist and a-n dist in student embedding
+                student_ap_dist = torch.norm(student_anchor - student_positive, p=2, dim=1)
+                student_an_dist = torch.norm(student_anchor.unsqueeze(1) - student_negative, p=2, dim=2)
+                student_an_dist = torch.masked_fill(student_an_dist, mask == 0, 1e9)
+                # get logit of tuples in teacher embedding
+                teacher_tuple_logit = torch.cat([-teacher_ap_dist.unsqueeze(1), -teacher_an_dist], dim=1) / args.tau1
+                # get logit of tuples in student embedding
+                student_tuple_logit = torch.cat([-student_ap_dist.unsqueeze(1), -student_an_dist], dim=1) / args.tau1
 
-            # get teacher embedding in triplets
-            teacher_anchor = teacher_embedding[anchor_id]
-            teacher_positive = teacher_embedding[positive_id]
-            teacher_negative = teacher_embedding[negative_id]
-
-            # get student embedding in triplets
-            student_anchor = student_embedding[anchor_id]
-            student_positive = student_embedding[positive_id]
-            student_negative = student_embedding[negative_id]
-
-            # get a-p dist and a-n dist in teacher embedding
-            teacher_ap_dist = torch.norm(teacher_anchor - teacher_positive, p=2, dim=1)
-            teacher_an_dist = torch.norm(teacher_anchor - teacher_negative, p=2, dim=1)
-
-            # get a-p dist and a-n dist in student embedding
-            student_ap_dist = torch.norm(student_anchor - student_positive, p=2, dim=1)
-            student_an_dist = torch.norm(student_anchor - student_negative, p=2, dim=1)
-
-            # get probability of triplets in teacher embedding
-            teacher_prob = torch.sigmoid((teacher_an_dist - teacher_ap_dist) / args.tau1)
-            teacher_prob_aug = torch.cat([teacher_prob.unsqueeze(1), 1 - teacher_prob.unsqueeze(1)])
-            
-            # get probability of triplets in student embedding
-            student_prob = torch.sigmoid((student_an_dist - student_ap_dist) / args.tau1)
-            student_prob_aug = torch.cat([student_prob.unsqueeze(1), 1 - student_prob.unsqueeze(1)])
-
-            loss_value = 1000 * loss_function(torch.log(student_prob_aug), teacher_prob_aug)
+                # compute loss function
+                loss_value = 1000 * loss_function(F.log_softmax(student_tuple_logit), F.softmax(teacher_tuple_logit))
+                loss_value = torch.mean(torch.sum(loss_value, dim=1))
 
             optimizer1.zero_grad()
             loss_value.backward()
             optimizer1.step()
 
-            training_loss += loss_value.cpu().item() * student_prob.size()[0]
-            n_triplets += student_prob.size()[0]
+            if not args.flag_merge:
+                training_loss += loss_value.cpu().item() * student_prob.size()[0]
+                n_triplets += student_prob.size()[0]
+            else:
+                training_loss += loss_value.cpu().item() * student_tuple_logit.size()[0]
+                n_triplets += student_tuple_logit.size()[0]
 
             if not args.flag_no_bar:
                 bar.update(1)
@@ -226,7 +261,7 @@ def train_stage2(args, train_data_loader, validate_data_loader, teacher, student
     teaching_loss_function = nn.KLDivLoss(reduction='batchmean')
     # build an optimizer
     optimizer2 = SGD([
-        {'params':student.get_network_params(), 'lr': 0.1 * args.lr2},
+        {'params':student.get_network_params(), 'lr': args.lr2},
         {'params':student.get_classifier_params(), 'lr':args.lr2}
     ], weight_decay=args.wd, momentum=args.mo, nesterov=True)
     # build a scheduler
