@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('--dropout_rate', type=float, default=0.3)
     # training procedure arguments
     parser.add_argument('--n_training_epochs1', type=int, default=200)
-    parser.add_argument('--n_training_epochs2', type=int, default=0)
+    parser.add_argument('--n_training_epochs2', type=int, default=200)
     parser.add_argument('--batch_size', type=int, default=128)  # training batch size
     parser.add_argument('--flag_merge', action='store_true', default=False)
     parser.add_argument('--tau1', type=float, default=4) # temperature for stochastic triplet embedding in stage 1
@@ -198,11 +198,10 @@ if __name__ == '__main__':
 
     # load best model found in stage 1
     if not args.flag_debug:
-        print('===== without stage 1 =====')
-        # record = torch.load(model_save_path1)
-        # best_validating_accuracy = record['validating_accuracy']
-        # student.load_state_dict(record['state_dict'])
-        # print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
+        record = torch.load(model_save_path1)
+        best_validating_accuracy = record['validating_accuracy']
+        student.load_state_dict(record['state_dict'])
+        print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
 
     # model save path and statistics save path for stage 2
     model_save_path2 = 'saves/trained_students/' + \
