@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     # load best model found in stage 1
     if not args.flag_debug:
-        record = torch.load(model_save_path1)
+        record = torch.load(model_save_path1, map_location='cpu')
         best_validating_accuracy = record['validating_accuracy']
         student.load_state_dict(record['state_dict'])
         print('===== best model in stage 1 loaded, validating acc = %f. =====' % (record['validating_accuracy']))
@@ -218,6 +218,7 @@ if __name__ == '__main__':
                         '_ca=' + str(args.ca) + \
                         '_dropout=' + str(args.dropout_rate) + \
                         '_batch=' + str(args.batch_size) + \
+                        '_merge=' + str(args.flag_merge) + \
                         '_tau2=' + str(args.tau2) + \
                         '_lambd=' + str(args.lambd) + \
                         '.model'
@@ -233,6 +234,7 @@ if __name__ == '__main__':
                             '_ca=' + str(args.ca) + \
                             '_dropout=' + str(args.dropout_rate) + \
                             '_batch=' + str(args.batch_size) + \
+                            '_merge=' + str(args.flag_merge) + \
                             '_tau2=' + str(args.tau2) + \
                             '_lambd=' + str(args.lambd) + \
                             '.stat'
