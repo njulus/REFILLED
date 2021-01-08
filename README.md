@@ -39,7 +39,7 @@ REFILLED can be used in several applications, e.g., standard knowledge distillat
 |Student       |[76.04](https://drive.google.com/file/d/1lz2wd7CxeLweyCdQD-qyjsmDy52dFbdP/view?usp=sharing)      |[70.15](https://drive.google.com/file/d/1V4UgzUuazpXBLT5ljbeluBTbb46e571I/view?usp=sharing)      |[71.53](https://drive.google.com/file/d/18fEOWIDL02DKQiw3XFOy9p_3753__TDz/view?usp=sharing)      |[66.30](https://drive.google.com/file/d/1XXTjbM2lRn5aqyy2LjpiLfkxcSlMMLLc/view?usp=sharing)      |
 |Paper Results               |77.49      |74.01      |72.72      |67.56      |
 |REFILLED after stage1 (paper) |55.47      |50.14      |45.04      |38.06      |
-|REFILLED after stage1 (new) |**58.60**  |**52.78**  |**48.33**  |**41.11**  |
+|REFILLED after stage1 (new) |**62.12**  |**53.86**  |**52.71**  |**44.33**  |
 
 **Results after stage1 are accuracies of NCM classifier, rather than NMI of clustering.**
 

@@ -162,6 +162,7 @@ if __name__ == '__main__':
                         '_ca=' + str(args.ca) + \
                         '_dropout=' + str(args.dropout_rate) + \
                         '_batch=' + str(args.batch_size) + \
+                        '_merge=' + str(args.flag_merge) + \
                         '_tau1=' + str(args.tau1) + \
                         '.model'
     statistics_save_path1 = 'saves/student_statistics/' + \
@@ -174,6 +175,7 @@ if __name__ == '__main__':
                             '_ca=' + str(args.ca) + \
                             '_dropout=' + str(args.dropout_rate) + \
                             '_batch=' + str(args.batch_size) + \
+                            '_merge=' + str(args.flag_merge) + \
                             '_tau1=' + str(args.tau1) + \
                             '.stat'
 
