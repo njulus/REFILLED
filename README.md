@@ -23,12 +23,6 @@ We propose the RElationship FacIlitated Local cLassifiEr Distillation (REFILLED)
 ## Important Improvements to ReFilled
 We further improve our proposed method by extending the dimension of matched tuple probabilities in stage1 and replacing local class centers with global class centers in stage2.
 
-### stage1
-TODO
-
-### stage2
-TODO
-
 ## Experiment Results
 REFILLED can be used in several applications, e.g., standard knowledge distillation, cross-task knowledge distillation and middle-shot learning. Standard knowledge distillation is widely used and we show the results under this setting below. Experiment results of cross-task knowledge distillation and middle-shot learning can be found in the paper.
 
